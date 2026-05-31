@@ -32,7 +32,9 @@ Add the following JSON your MCP client configuration:
       "args": ["-y", "yazio-mcp"],
       "env": {
         "YAZIO_USERNAME": "your_email@emai.com",
-        "YAZIO_PASSWORD": "your_password"
+        "YAZIO_PASSWORD": "your_password",
+        "YAZIO_MOBILE_CLIENT_ID": "your_yazio_mobile_client_id",
+        "YAZIO_MOBILE_CLIENT_SECRET": "your_yazio_mobile_client_secret"
       }
     }
   }
@@ -53,7 +55,12 @@ See [Building Desktop Extensions with MCPB](https://support.claude.com/en/articl
 ### Claude Code (CLI)
 
 ```bash
-claude mcp add yazio -e YAZIO_USERNAME=your_email@email.com -e YAZIO_PASSWORD=your_password -- npx -y yazio-mcp
+claude mcp add yazio \
+  -e YAZIO_USERNAME=your_email@email.com \
+  -e YAZIO_PASSWORD=your_password \
+  -e YAZIO_MOBILE_CLIENT_ID=your_yazio_mobile_client_id \
+  -e YAZIO_MOBILE_CLIENT_SECRET=your_yazio_mobile_client_secret \
+  -- npx -y yazio-mcp
 ```
 
 Verify with `claude mcp list`.
@@ -99,14 +106,42 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `get_user_settings` | Get user preferences | - |
 | `search_products` | Search food database | `query` |
 | `get_product` | Get detailed product info | `id` |
+| `create_user_product` | Create a custom/private Yazio product in the user account | `name`, `category`, `base_unit`, `is_private`, `nutrients`, `servings`, `producer?`, `ean?`, `country?`, `id?` |
 | `add_user_consumed_item` | Add food to your log | `productId`, `amount`, `date`, `mealType` |
 | `add_user_water_intake` | Add water intake entry (cumulative value in ml) | `date`, `water_intake` |
 | `remove_user_consumed_item` | Remove food from log | `itemId` |
 
 ## Test Connection
 
+### Create custom products
+
+`create_user_product` uses Yazio v20 API endpoint `POST /user/products` to create custom products in the authenticated Yazio account.
+
+Required nutrients are:
+
+- `energy.energy`
+- `nutrient.fat`
+- `nutrient.protein`
+- `nutrient.carb`
+
+Nutrients are defined per 100 g/ml, at least one serving is required, and `is_private` defaults to `true` so custom products stay private unless you explicitly override it.
+
+Safe validation probe (does not create a product by default):
+
 ```bash
-YAZIO_USERNAME='your_email' YAZIO_PASSWORD='your_password' npx yazio-mcp
+npm run probe:create-product
+```
+
+The probe reads `YAZIO_USERNAME`, `YAZIO_PASSWORD`, `YAZIO_MOBILE_CLIENT_ID`, and `YAZIO_MOBILE_CLIENT_SECRET` from the environment first, then from `~/.hermes/.env` (or `YAZIO_ENV_PATH` if set). Real product creation is guarded behind `YAZIO_CREATE_PRODUCT_CONFIRM=1` and should only be used manually.
+
+Do not commit runtime client credentials to source control. Keep them in `.env` or your MCP client's secure environment configuration.
+
+```bash
+YAZIO_USERNAME='your_email' \
+YAZIO_PASSWORD='your_password' \
+YAZIO_MOBILE_CLIENT_ID='your_yazio_mobile_client_id' \
+YAZIO_MOBILE_CLIENT_SECRET='your_yazio_mobile_client_secret' \
+npx yazio-mcp
 ```
 
 ## ⚠️ Important Disclaimers

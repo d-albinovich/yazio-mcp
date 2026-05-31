@@ -122,6 +122,14 @@ export interface YazioSuggestedProduct {
   serving_quantity: number | null;
 }
 
+export interface YazioV20AuthTokenResponse {
+  access_token?: string;
+  token_type?: string;
+  expires_in?: number;
+}
+
+export type YazioCreateProductResponse = Record<string, unknown>;
+
 export interface YazioDietaryPreferences {
   restriction: string | null;
 }

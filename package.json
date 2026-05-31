@@ -21,6 +21,7 @@
   },
   "files": [
     "dist/**/*",
+    "scripts/probe-create-product.mjs",
     "README.md",
     "LICENSE"
   ],
@@ -33,6 +34,7 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
     "type-check": "tsc --noEmit",
+    "probe:create-product": "node scripts/probe-create-product.mjs",
     "version": "node scripts/bump-version.cjs && git add manifest.json server.json"
   },
   "keywords": [

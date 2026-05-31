@@ -5,6 +5,55 @@ export const DateStringSchema = z.iso.date().describe('Date in YYYY-MM-DD format
 export const ProductIdSchema = z.uuid().describe('Product UUID v1/v4 (e.g. 4ceff6e9-78ce-441b-964a-22e81c1dee92)');
 export const ItemIdSchema = ProductIdSchema.describe('Unique item identifier');
 export const ServingTypeSchema = z.string().describe('Serving type (e.g. portion, fruit, glass, cup, slice, piece, bar, gram, bottle, can, etc.)');
+export const BaseUnitSchema = z.enum(['g', 'ml']).describe('Base unit: grams (g) or milliliters (ml)');
+export const ProductCategorySchema = z.enum([
+  'babyfood',
+  'bakedgoods',
+  'bakingingredients',
+  'bread',
+  'candy',
+  'cerealproducts',
+  'cheese',
+  'chocolate',
+  'dishes',
+  'drinksalcoholic',
+  'drinksnonalcoholic',
+  'fastfood',
+  'fish',
+  'fruits',
+  'icecream',
+  'legumes',
+  'meat',
+  'milk',
+  'miscellaneous',
+  'nutritionalsupplements',
+  'oils',
+  'pasta',
+  'potatoproducts',
+  'poultry',
+  'riceproducts',
+  'sauces',
+  'seeds',
+  'soyproducts',
+  'spices',
+  'spreads',
+  'vegetables'
+]).describe('Product category');
+export const CreateProductServingNameSchema = z.enum([
+  'portion',
+  'cup',
+  'each',
+  'slice',
+  'piece',
+  'package',
+  'glass',
+  'bottle',
+  'bar',
+  'tablet',
+  'can',
+  'teaspoon',
+  'tablespoon'
+]).describe('Serving name');
 
 export const QueryStringSchema = z.string().describe('Search query string');
 export const LimitSchema = z.number().optional().describe('Maximum number of results to return');
@@ -31,6 +80,31 @@ export const OptionalQueryInputSchema = z.object({
 
 export const EmptyInputSchema = z.object({});
 
+export const CreateProductServingSchema = z.object({
+  serving: CreateProductServingNameSchema,
+  amount: z.number().positive().describe('Serving amount in base units (g or ml)')
+});
+
+export const CreateProductNutrientsSchema = z.object({
+  'energy.energy': z.number().nonnegative().describe('Energy per 100 g/ml'),
+  'nutrient.fat': z.number().nonnegative().describe('Fat per 100 g/ml'),
+  'nutrient.protein': z.number().nonnegative().describe('Protein per 100 g/ml'),
+  'nutrient.carb': z.number().nonnegative().describe('Carbohydrates per 100 g/ml')
+}).catchall(z.number().nonnegative()).describe('Nutrients per 100 g/ml');
+
+export const CreateUserProductInputSchema = z.object({
+  id: ProductIdSchema.optional(),
+  name: z.string().min(1).describe('Product name'),
+  category: ProductCategorySchema.default('miscellaneous'),
+  base_unit: BaseUnitSchema,
+  is_private: z.boolean().default(true).describe('Whether the custom product is private to the user'),
+  nutrients: CreateProductNutrientsSchema,
+  servings: z.array(CreateProductServingSchema).min(1).describe('Available servings for the custom product'),
+  producer: z.string().min(1).optional().describe('Optional producer name'),
+  ean: z.string().min(1).optional().describe('Optional EAN/barcode'),
+  country: z.string().length(2).optional().describe('Optional ISO 3166-1 alpha-2 country code')
+});
+
 export const GetFoodEntriesInputSchema = DateInputSchema;
 export const GetDailySummaryInputSchema = DateInputSchema;
 export const GetUserInfoInputSchema = EmptyInputSchema;
@@ -45,7 +119,7 @@ export const SearchProductsOutputSchema = z.object({
     serving: ServingTypeSchema,
     serving_quantity: z.number(),
     amount: z.number(),
-    base_unit: z.enum(['g', 'ml']).describe('Base unit: grams (g) or milliliters (ml)'),
+    base_unit: BaseUnitSchema,
     producer: z.string().nullable().describe('Producer name'),
     is_verified: z.boolean(),
     nutrients: z.record(z.string(), z.number()).describe('Nutrients object with keys like energy.energy, nutrient.carb, etc.'),
@@ -86,6 +160,7 @@ export type GetUserWeightInput = z.infer<typeof GetUserWeightInputSchema>;
 export type GetWaterIntakeInput = z.infer<typeof GetWaterIntakeInputSchema>;
 export type SearchProductsInput = z.infer<typeof SearchProductsInputSchema>;
 export type GetProductInput = z.infer<typeof GetProductInputSchema>;
+export type CreateUserProductInput = z.infer<typeof CreateUserProductInputSchema>;
 export type GetUserExercisesInput = z.infer<typeof GetUserExercisesInputSchema>;
 export type GetUserSettingsInput = z.infer<typeof GetUserSettingsInputSchema>;
 export type GetUserSuggestedProductsInput = z.infer<typeof GetUserSuggestedProductsInputSchema>;

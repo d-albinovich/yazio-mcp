@@ -4,7 +4,9 @@ import { createRequire } from 'node:module';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { Yazio } from 'yazio';
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4 } from 'uuid';
+import { loadYazioCredentials } from './env.js';
+import { YazioV20Client } from './yazio-v20-client.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
@@ -16,6 +18,7 @@ import {
   GetWaterIntakeInputSchema,
   SearchProductsInputSchema,
   GetProductInputSchema,
+  CreateUserProductInputSchema,
   GetUserExercisesInputSchema,
   GetUserSettingsInputSchema,
   GetUserSuggestedProductsInputSchema,
@@ -29,6 +32,7 @@ import {
   type GetWaterIntakeInput,
   type SearchProductsInput,
   type GetProductInput,
+  type CreateUserProductInput,
   type GetUserExercisesInput,
   type GetUserSuggestedProductsInput,
   type AddConsumedItemInput,
@@ -38,12 +42,13 @@ import {
 import type {
   YazioExerciseOptions,
   YazioSuggestedProductsOptions,
-  YazioAddWaterIntakeOptions
+  YazioAddWaterIntakeOptions,
 } from './types.js';
 
 class YazioMcpServer {
   private server: McpServer;
   private yazioClient: Yazio | null = null;
+  private readonly yazioV20Client = new YazioV20Client();
 
   constructor() {
     this.server = new McpServer({
@@ -58,16 +63,8 @@ class YazioMcpServer {
   }
 
   private async initializeClient(): Promise<void> {
-    const username = process.env.YAZIO_USERNAME;
-    const password = process.env.YAZIO_PASSWORD;
-
-    if (!username || !password) {
-      console.error('❌ YAZIO_USERNAME and YAZIO_PASSWORD environment variables are required');
-      console.error('💡 Please set these environment variables with your Yazio account credentials');
-      process.exit(1);
-    }
-
     try {
+      const { username, password } = loadYazioCredentials();
       this.yazioClient = new Yazio({
         credentials: {
           username,
@@ -80,7 +77,7 @@ class YazioMcpServer {
       this.extendWaterIntakeSupport(this.yazioClient);
     } catch (error) {
       console.error('❌ Failed to authenticate with Yazio:', (error as Error).message);
-      console.error('💡 Please check your YAZIO_USERNAME and YAZIO_PASSWORD environment variables');
+      console.error('💡 Please check your Yazio environment variables');
       process.exit(1);
     }
   }
@@ -302,6 +299,22 @@ class YazioMcpServer {
       },
       async (args: GetProductInput) => {
         return await this.getProduct(args);
+      }
+    );
+
+    this.server.registerTool(
+      'create_user_product',
+      {
+        description: 'Create a custom Yazio product for the authenticated user',
+        inputSchema: CreateUserProductInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          idempotentHint: false,
+          openWorldHint: true,
+        },
+      },
+      async (args: CreateUserProductInput) => {
+        return await this.createUserProduct(args);
       }
     );
 
@@ -631,6 +644,23 @@ Example:
     } catch (error) {
       throw new Error(`Failed to get product: ${error}`);
     }
+  }
+
+  private async createUserProduct(args: CreateUserProductInput) {
+    await this.ensureAuthenticated();
+
+    const { createdProductId, product, requestSummary } = await this.yazioV20Client.createUserProduct(args);
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: `Created user product with ID "${createdProductId}".\n\n${JSON.stringify(requestSummary, null, 2)}`,
+        },
+      ],
+      product,
+      requestSummary,
+    };
   }
 
   private async getUserExercises(args: GetUserExercisesInput) {
