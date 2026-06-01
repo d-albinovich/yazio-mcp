@@ -57,6 +57,7 @@ export const CreateProductServingNameSchema = z.enum([
 
 export const QueryStringSchema = z.string().describe('Search query string');
 export const LimitSchema = z.number().optional().describe('Maximum number of results to return');
+export const BarcodeSchema = z.string().min(1).describe('Barcode/EAN value to look up');
 
 export const DateInputSchema = z.object({
   date: DateStringSchema
@@ -70,12 +71,22 @@ export const QueryInputSchema = z.object({
   query: QueryStringSchema.describe('Search query'),
   sex: z.enum(["male", "female"]).default("male").optional(),
   countries: z.array(z.string()).default(["US"]).optional().describe('Array of country codes for product search (e.g. ["US", "DE", "TR"])'),
-  locales: z.array(z.string()).default(["en_US"]).optional().describe('Array of locale codes (e.g. ["en_US", "de_US"])')
+  locales: z.array(z.string()).default(["en_US"]).optional().describe('Array of locale codes (e.g. ["en_US", "de_US"])'),
+  test_group: z.string().optional().describe('Optional Yazio search test_group, e.g. exclude_nutritionix')
 });
 
 export const OptionalQueryInputSchema = z.object({
   query: QueryStringSchema.optional().describe('Search query (optional)'),
   limit: LimitSchema
+});
+
+export const FindProductByBarcodeInputSchema = z.object({
+  barcode: BarcodeSchema,
+  sex: z.enum(["male", "female"]).default("male").optional(),
+  countries: z.array(z.string()).default(["US"]).optional().describe('Array of country codes for product search (e.g. ["US", "DE", "SK"])'),
+  locales: z.array(z.string()).default(["en_US"]).optional().describe('Array of locale codes (e.g. ["en_US", "sk_SK", "de_DE"])'),
+  include_user_products: z.boolean().default(true).optional().describe('If global search has no exact EAN match, scan authenticated user products via /user/products + /products/{id}'),
+  max_user_products: z.number().int().positive().max(1000).default(500).optional().describe('Safety cap for hydrated user products during fallback')
 });
 
 export const EmptyInputSchema = z.object({});
@@ -86,11 +97,11 @@ export const CreateProductServingSchema = z.object({
 });
 
 export const CreateProductNutrientsSchema = z.object({
-  'energy.energy': z.number().nonnegative().describe('Energy per 100 g/ml'),
-  'nutrient.fat': z.number().nonnegative().describe('Fat per 100 g/ml'),
-  'nutrient.protein': z.number().nonnegative().describe('Protein per 100 g/ml'),
-  'nutrient.carb': z.number().nonnegative().describe('Carbohydrates per 100 g/ml')
-}).catchall(z.number().nonnegative()).describe('Nutrients per 100 g/ml');
+  'energy.energy': z.number().nonnegative().describe('Energy per base unit (kcal per g/ml, not per 100 g/ml)'),
+  'nutrient.fat': z.number().nonnegative().describe('Fat per base unit (g per g/ml, not per 100 g/ml)'),
+  'nutrient.protein': z.number().nonnegative().describe('Protein per base unit (g per g/ml, not per 100 g/ml)'),
+  'nutrient.carb': z.number().nonnegative().describe('Carbohydrates per base unit (g per g/ml, not per 100 g/ml)')
+}).catchall(z.number().nonnegative()).describe('Nutrients per base unit (per 1 g/ml). Convert label per-100 values by dividing by 100.');
 
 export const CreateUserProductInputSchema = z.object({
   id: ProductIdSchema.optional(),
@@ -159,6 +170,7 @@ export type GetUserInfoInput = z.infer<typeof GetUserInfoInputSchema>;
 export type GetUserWeightInput = z.infer<typeof GetUserWeightInputSchema>;
 export type GetWaterIntakeInput = z.infer<typeof GetWaterIntakeInputSchema>;
 export type SearchProductsInput = z.infer<typeof SearchProductsInputSchema>;
+export type FindProductByBarcodeInput = z.infer<typeof FindProductByBarcodeInputSchema>;
 export type GetProductInput = z.infer<typeof GetProductInputSchema>;
 export type CreateUserProductInput = z.infer<typeof CreateUserProductInputSchema>;
 export type GetUserExercisesInput = z.infer<typeof GetUserExercisesInputSchema>;

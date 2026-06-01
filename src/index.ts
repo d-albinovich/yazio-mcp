@@ -17,6 +17,7 @@ import {
   GetUserWeightInputSchema,
   GetWaterIntakeInputSchema,
   SearchProductsInputSchema,
+  FindProductByBarcodeInputSchema,
   GetProductInputSchema,
   CreateUserProductInputSchema,
   GetUserExercisesInputSchema,
@@ -31,6 +32,7 @@ import {
   type GetDailySummaryInput,
   type GetWaterIntakeInput,
   type SearchProductsInput,
+  type FindProductByBarcodeInput,
   type GetProductInput,
   type CreateUserProductInput,
   type GetUserExercisesInput,
@@ -272,7 +274,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'search_products',
       {
-        description: 'Search for food products in Yazio database. You can optionally specify user\'s sex, country and locale of the products to search for.',
+        description: 'Search for food products in the Yazio v20 database. Barcode scans use this same endpoint with the barcode as query; there is no ?ean= endpoint.',
         inputSchema: SearchProductsInputSchema,
         // outputSchema: SearchProductsOutputSchema,
         annotations: {
@@ -287,9 +289,25 @@ class YazioMcpServer {
     );
 
     this.server.registerTool(
+      'find_product_by_barcode',
+      {
+        description: 'Find a product by barcode/EAN using the real Yazio app flow: global /v20/products/search?query=<barcode>, then fallback to the authenticated user product list and match product.eans[].',
+        inputSchema: FindProductByBarcodeInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
+      },
+      async (args: FindProductByBarcodeInput) => {
+        return await this.findProductByBarcode(args);
+      }
+    );
+
+    this.server.registerTool(
       'get_product',
       {
-        description: 'Get detailed information about a specific product by ID',
+        description: 'Get detailed product information from Yazio v20 by product ID, including eans[] for barcode checks.',
         inputSchema: GetProductInputSchema,
         annotations: {
           readOnlyHint: true,
@@ -299,6 +317,21 @@ class YazioMcpServer {
       },
       async (args: GetProductInput) => {
         return await this.getProduct(args);
+      }
+    );
+
+    this.server.registerTool(
+      'list_user_products',
+      {
+        description: 'List custom/user-created Yazio product IDs for the authenticated account. Use get_product to hydrate details such as eans[].',
+        inputSchema: GetUserInfoInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async () => {
+        return await this.listUserProducts();
       }
     );
 
@@ -608,41 +641,85 @@ Example:
   }
 
   private async searchProducts(args: SearchProductsInput) {
-    const client = await this.ensureAuthenticated();
+    await this.ensureAuthenticated();
 
     try {
-      const products = await client.products.search(args);
+      const products = await this.yazioV20Client.searchProducts(args);
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Products:\n\n${JSON.stringify(products, null, 2)}`,
+            text: `Products from Yazio v20 search:\n\n${JSON.stringify(products, null, 2)}`,
           },
         ],
         products,
       };
     } catch (error) {
-      throw new Error(`Failed to search products: ${error}`);
+      throw new Error(`Failed to search products via Yazio v20: ${error}`);
     }
   }
 
-  private async getProduct(args: GetProductInput) {
-    const client = await this.ensureAuthenticated();
+  private async findProductByBarcode(args: FindProductByBarcodeInput) {
+    await this.ensureAuthenticated();
 
     try {
-      const product = await client.products.get(args.id);
+      const result = await this.yazioV20Client.findProductByBarcode(args);
+      const status = result.match
+        ? `Found ${result.match.source} match for barcode "${args.barcode}" with product ID "${result.match.product_id}".`
+        : `No exact product match found for barcode "${args.barcode}".`;
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Product details for ID "${args.id}":\n\n${JSON.stringify(product, null, 2)}`,
+            text: `${status}\n\n${JSON.stringify(result, null, 2)}`,
           },
         ],
+        result,
       };
     } catch (error) {
-      throw new Error(`Failed to get product: ${error}`);
+      throw new Error(`Failed to find product by barcode via Yazio v20: ${error}`);
+    }
+  }
+
+  private async getProduct(args: GetProductInput) {
+    await this.ensureAuthenticated();
+
+    try {
+      const product = await this.yazioV20Client.getProduct(args.id);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Product details from Yazio v20 for ID "${args.id}":\n\n${JSON.stringify(product, null, 2)}`,
+          },
+        ],
+        product,
+      };
+    } catch (error) {
+      throw new Error(`Failed to get product via Yazio v20: ${error}`);
+    }
+  }
+
+  private async listUserProducts() {
+    await this.ensureAuthenticated();
+
+    try {
+      const productIds = await this.yazioV20Client.listUserProductIds();
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `User product IDs from Yazio v20:\n\n${JSON.stringify(productIds, null, 2)}`,
+          },
+        ],
+        productIds,
+      };
+    } catch (error) {
+      throw new Error(`Failed to list user products via Yazio v20: ${error}`);
     }
   }
 

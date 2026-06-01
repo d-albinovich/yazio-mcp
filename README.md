@@ -19,6 +19,7 @@ An MCP (Model Context Protocol) server that connects Claude/Cursor to your Yazio
 - ⚖️ **Weight Monitoring** - View weight history and trends
 - 🎯 **Goal Management** - Access and manage nutrition goals
 - 🔍 **Product Search** - Search Yazio's extensive [food database](https://www.yazio.com/en/foods)
+- 🧾 **Barcode Lookup** - Uses the Yazio Android app-compatible v20 flow and falls back to your own custom products
 
 ## 🚀 Quick Start
 
@@ -104,8 +105,10 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `get_user_water_intake` | Get water intake | `date` |
 | `get_user_goals` | Get nutrition goals | - |
 | `get_user_settings` | Get user preferences | - |
-| `search_products` | Search food database | `query` |
-| `get_product` | Get detailed product info | `id` |
+| `search_products` | Search food database through `/v20/products/search`; barcode scans are `query=<barcode>` | `query` |
+| `find_product_by_barcode` | Search by barcode and fall back to user-created products via `/v20/user/products` + `eans[]` matching | `barcode`, `countries`, `locales` |
+| `get_product` | Get detailed product info from `/v20/products/{id}` including `eans[]` | `id` |
+| `list_user_products` | List custom/user-created product IDs for the authenticated account | - |
 | `create_user_product` | Create a custom/private Yazio product in the user account | `name`, `category`, `base_unit`, `is_private`, `nutrients`, `servings`, `producer?`, `ean?`, `country?`, `id?` |
 | `add_user_consumed_item` | Add food to your log | `productId`, `amount`, `date`, `mealType` |
 | `add_user_water_intake` | Add water intake entry (cumulative value in ml) | `date`, `water_intake` |
@@ -124,7 +127,15 @@ Required nutrients are:
 - `nutrient.protein`
 - `nutrient.carb`
 
-Nutrients are defined per 100 g/ml, at least one serving is required, and `is_private` defaults to `true` so custom products stay private unless you explicitly override it.
+Nutrients are defined per base unit (per 1 g/ml, not per 100 g/ml), at least one serving is required, and `is_private` defaults to `true` so custom products stay private unless you explicitly override it. For example, a food label with `243 kcal / 100 g` should be sent as `"energy.energy": 2.43`.
+
+### Barcode search limitation
+
+Reverse-engineering of Yazio Android v12.86.0 shows that the mobile app uses `/v20/products/search?query=<barcode>` for barcode scans. There is no public `?ean=`, `/barcode/{ean}`, publish, contribute, moderation, or barcode-binding endpoint.
+
+Products created through `POST /v20/user/products` use the same endpoint as the mobile app and can store `ean`, but Yazio does not expose a client API that forces those products into the global barcode/search index. User-created products are discoverable by listing account products via `/v20/user/products`, hydrating each product through `/v20/products/{id}`, and matching the barcode against `eans[]`.
+
+Use `find_product_by_barcode` for reliable automation: it first checks the global search index, then falls back to the authenticated user's own products so custom barcode products can be found without creating duplicates.
 
 Safe validation probe (does not create a product by default):
 
