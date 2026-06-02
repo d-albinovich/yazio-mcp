@@ -33,14 +33,16 @@ Add the following JSON your MCP client configuration:
       "args": ["-y", "yazio-mcp"],
       "env": {
         "YAZIO_USERNAME": "your_email@emai.com",
-        "YAZIO_PASSWORD": "your_password",
-        "YAZIO_MOBILE_CLIENT_ID": "your_yazio_mobile_client_id",
-        "YAZIO_MOBILE_CLIENT_SECRET": "your_yazio_mobile_client_secret"
+        "YAZIO_PASSWORD": "your_password"
       }
     }
   }
 }
 ```
+
+Only `YAZIO_USERNAME` and `YAZIO_PASSWORD` are required. The server authenticates against the
+Yazio `/v20` API using the public mobile-app OAuth client by default; set the optional
+`YAZIO_MOBILE_CLIENT_ID` / `YAZIO_MOBILE_CLIENT_SECRET` env vars only if you need to override it.
 
 
 ### Claude Desktop (Extension)
@@ -59,8 +61,6 @@ See [Building Desktop Extensions with MCPB](https://support.claude.com/en/articl
 claude mcp add yazio \
   -e YAZIO_USERNAME=your_email@email.com \
   -e YAZIO_PASSWORD=your_password \
-  -e YAZIO_MOBILE_CLIENT_ID=your_yazio_mobile_client_id \
-  -e YAZIO_MOBILE_CLIENT_SECRET=your_yazio_mobile_client_secret \
   -- npx -y yazio-mcp
 ```
 
@@ -98,12 +98,12 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
-| `get_user_daily_summary` | Get daily nutrition summary | `date` |
+| `get_user_daily_summary` | Get daily nutrient totals (energy and macros) | `date` |
 | `get_user_consumed_items` | Get food entries for a date | `date` |
-| `get_user_weight` | Get weight data | - |
-| `get_user_exercises` | Get exercise data | `date` |
+| `get_user_weight` | Get the most recent weight entry | `date?` |
+| `get_user_exercises` | Get exercise data | `date?` |
 | `get_user_water_intake` | Get water intake | `date` |
-| `get_user_goals` | Get nutrition goals | - |
+| `get_user_goals` | Get nutrition goals | `date?` |
 | `get_user_settings` | Get user preferences | - |
 | `search_products` | Search food database through `/v20/products/search`; barcode scans are `query=<barcode>` | `query` |
 | `find_product_by_barcode` | Search by barcode and fall back to user-created products via `/v20/user/products` + `eans[]` matching | `barcode`, `countries`, `locales` |

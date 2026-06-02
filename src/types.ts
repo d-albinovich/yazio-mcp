@@ -106,22 +106,6 @@ export interface YazioUserInfo {
   stripe_customer_id: string | null;
 }
 
-export interface YazioWeightEntry {
-  value: number | null;
-  date: string;
-  id: string;
-  external_id: string | null;
-  gateway: string | null;
-  source: string | null;
-}
-
-export interface YazioSuggestedProduct {
-  serving: string | null;
-  amount: number;
-  product_id: string;
-  serving_quantity: number | null;
-}
-
 export interface YazioV20AuthTokenResponse {
   access_token?: string;
   token_type?: string;
@@ -256,46 +240,6 @@ export interface YazioConsumedItems {
   products: YazioConsumedItem[];
   recipe_portions: unknown[];
   simple_products: unknown[];
-}
-
-// API Options interfaces - these match the actual Yazio library signatures
-export interface YazioWeightOptions {
-  date?: string | Date;
-}
-
-export interface YazioExerciseOptions {
-  date?: string | Date; // Only supports single date, not date ranges
-}
-
-export interface YazioSuggestedProductsOptions {
-  daytime: "breakfast" | "lunch" | "dinner" | "snack";
-  date?: string | Date;
-}
-
-export interface YazioWaterIntakeOptions {
-  date: string | Date;
-}
-
-export interface YazioDailySummaryOptions {
-  date: string | Date;
-}
-
-export interface YazioConsumedItemsOptions {
-  date: string | Date;
-}
-
-export interface YazioAddConsumedItemOptions {
-  date: string | Date;
-  serving: string;
-  amount: number;
-  id: string;
-  product_id: string;
-  serving_quantity: number;
-  daytime: "breakfast" | "lunch" | "dinner" | "snack";
-}
-
-export interface YazioRemoveConsumedItemOptions {
-  itemId: string;
 }
 
 export interface YazioWaterIntakeEntry {

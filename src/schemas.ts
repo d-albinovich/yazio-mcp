@@ -56,7 +56,6 @@ export const CreateProductServingNameSchema = z.enum([
 ]).describe('Serving name');
 
 export const QueryStringSchema = z.string().describe('Search query string');
-export const LimitSchema = z.number().optional().describe('Maximum number of results to return');
 export const BarcodeSchema = z.string().min(1).describe('Barcode/EAN value to look up');
 
 export const DateInputSchema = z.object({
@@ -73,11 +72,6 @@ export const QueryInputSchema = z.object({
   countries: z.array(z.string()).default(["US"]).optional().describe('Array of country codes for product search (e.g. ["US", "DE", "TR"])'),
   locales: z.array(z.string()).default(["en_US"]).optional().describe('Array of locale codes (e.g. ["en_US", "de_US"])'),
   test_group: z.string().optional().describe('Optional Yazio search test_group, e.g. exclude_nutritionix')
-});
-
-export const OptionalQueryInputSchema = z.object({
-  query: QueryStringSchema.optional().describe('Search query (optional)'),
-  limit: LimitSchema
 });
 
 export const FindProductByBarcodeInputSchema = z.object({
@@ -119,7 +113,7 @@ export const CreateUserProductInputSchema = z.object({
 export const GetFoodEntriesInputSchema = DateInputSchema;
 export const GetDailySummaryInputSchema = DateInputSchema;
 export const GetUserInfoInputSchema = EmptyInputSchema;
-export const GetUserWeightInputSchema = EmptyInputSchema; // Yazio getWeight doesn't accept parameters
+export const GetUserWeightInputSchema = OptionalDateInputSchema; // v20: GET /user/bodyvalues/weight/last?date=
 export const GetWaterIntakeInputSchema = DateInputSchema;
 export const SearchProductsInputSchema = QueryInputSchema;
 export const SearchProductsOutputSchema = z.object({
@@ -143,7 +137,10 @@ export const GetProductInputSchema = z.object({
 });
 export const GetUserExercisesInputSchema = OptionalDateInputSchema; // Only supports single date, not date ranges
 export const GetUserSettingsInputSchema = EmptyInputSchema;
-export const GetUserSuggestedProductsInputSchema = OptionalQueryInputSchema;
+export const GetUserSuggestedProductsInputSchema = z.object({
+  daytime: DaytimeSchema.default('breakfast').describe('Meal to get suggestions for'),
+  date: DateStringSchema.optional().describe('Date for suggestions (defaults to today on the server)')
+}); // v20: GET /user/products/suggested?daytime=&date=
 export const AddConsumedItemInputSchema = z.object({
   // id: ProductIdSchema.describe('Random identifier for the consumed item'),
   product_id: ProductIdSchema,
@@ -161,7 +158,7 @@ export const AddWaterIntakeInputSchema = z.object({
   water_intake: z.number().describe('Cumulative water intake in milliliters (ml)')
 });
 export const GetDietaryPreferencesInputSchema = EmptyInputSchema;
-export const GetUserGoalsInputSchema = EmptyInputSchema;
+export const GetUserGoalsInputSchema = OptionalDateInputSchema; // v20: GET /user/goals?date=
 
 export type Daytime = z.infer<typeof DaytimeSchema>;
 export type GetFoodEntriesInput = z.infer<typeof GetFoodEntriesInputSchema>;
