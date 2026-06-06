@@ -21,6 +21,9 @@ export default [
       '@typescript-eslint': tseslint,
     },
     rules: {
+      // Disable the base rule in favor of the type-aware variant, as recommended by
+      // typescript-eslint (the base rule false-positives on type/interface signatures).
+      'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': 'error',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off', // Too strict for this project

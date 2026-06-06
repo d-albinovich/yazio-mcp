@@ -106,21 +106,13 @@ export interface YazioUserInfo {
   stripe_customer_id: string | null;
 }
 
-export interface YazioWeightEntry {
-  value: number | null;
-  date: string;
-  id: string;
-  external_id: string | null;
-  gateway: string | null;
-  source: string | null;
+export interface YazioV20AuthTokenResponse {
+  access_token?: string;
+  token_type?: string;
+  expires_in?: number;
 }
 
-export interface YazioSuggestedProduct {
-  serving: string | null;
-  amount: number;
-  product_id: string;
-  serving_quantity: number | null;
-}
+export type YazioCreateProductResponse = Record<string, unknown>;
 
 export interface YazioDietaryPreferences {
   restriction: string | null;
@@ -250,49 +242,46 @@ export interface YazioConsumedItems {
   simple_products: unknown[];
 }
 
-// API Options interfaces - these match the actual Yazio library signatures
-export interface YazioWeightOptions {
-  date?: string | Date;
-}
-
-export interface YazioExerciseOptions {
-  date?: string | Date; // Only supports single date, not date ranges
-}
-
-export interface YazioSuggestedProductsOptions {
-  daytime: "breakfast" | "lunch" | "dinner" | "snack";
-  date?: string | Date;
-}
-
-export interface YazioWaterIntakeOptions {
-  date: string | Date;
-}
-
-export interface YazioDailySummaryOptions {
-  date: string | Date;
-}
-
-export interface YazioConsumedItemsOptions {
-  date: string | Date;
-}
-
-export interface YazioAddConsumedItemOptions {
-  date: string | Date;
-  serving: string;
-  amount: number;
-  id: string;
-  product_id: string;
-  serving_quantity: number;
-  daytime: "breakfast" | "lunch" | "dinner" | "snack";
-}
-
-export interface YazioRemoveConsumedItemOptions {
-  itemId: string;
-}
-
 export interface YazioWaterIntakeEntry {
   date: string; // Format: "YYYY-MM-DD HH:mm:ss"
   water_intake: number; // Cumulative water intake in ml
 }
 
 export type YazioAddWaterIntakeOptions = YazioWaterIntakeEntry[];
+
+export type YazioV20ProductSearchResult = YazioProductSearchResult;
+export type YazioV20Product = YazioProduct;
+
+export interface YazioV20SearchProductsOptions {
+  query: string;
+  sex?: "male" | "female";
+  countries?: string[];
+  locales?: string[];
+  test_group?: string;
+}
+
+export interface YazioFindProductByBarcodeOptions {
+  barcode: string;
+  sex?: "male" | "female";
+  countries?: string[];
+  locales?: string[];
+  include_user_products?: boolean;
+  max_user_products?: number;
+}
+
+export type YazioBarcodeMatchSource = "global_search" | "user_product";
+
+export interface YazioBarcodeMatch {
+  source: YazioBarcodeMatchSource;
+  product_id: string;
+  product: YazioV20Product;
+  searchResult?: YazioV20ProductSearchResult;
+}
+
+export interface YazioFindProductByBarcodeResult {
+  barcode: string;
+  match: YazioBarcodeMatch | null;
+  globalCandidates: YazioV20ProductSearchResult[];
+  scannedUserProductCount: number;
+  limitation: string;
+}
